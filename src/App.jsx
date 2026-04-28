@@ -518,18 +518,20 @@ function App() {
               </thead>
               <tbody>
                 {movementRows.length === 0 && (
-                  <tr>
-                    <td colSpan="5">No hay movimientos para este mes.</td>
+                  <tr className="empty-row">
+                    <td className="empty-cell" data-label="Estado" colSpan="5">
+                      No hay movimientos para este mes.
+                    </td>
                   </tr>
                 )}
 
                 {movementRows.map((movement) => (
                   <tr key={movement.id}>
-                    <td>{movementTypes.find((item) => item.value === movement.type)?.label}</td>
-                    <td>{movement.description}</td>
-                    <td>{currency.format(Number(movement.amount))}</td>
-                    <td>{movement.notes || '-'}</td>
-                    <td>
+                    <td data-label="Tipo">{movementTypes.find((item) => item.value === movement.type)?.label}</td>
+                    <td data-label="Descripcion">{movement.description}</td>
+                    <td data-label="Monto">{currency.format(Number(movement.amount))}</td>
+                    <td data-label="Notas">{movement.notes || '-'}</td>
+                    <td data-label="Acciones">
                       <div className="actions">
                         {movement.isGroupedSummary ? (
                           <button
@@ -728,19 +730,25 @@ function App() {
                 </thead>
                 <tbody>
                   {detailMovements.length === 0 && (
-                    <tr>
-                      <td colSpan={detailsModalType === 'receivable' ? 6 : 5}>No hay movimientos en este grupo para este mes.</td>
+                    <tr className="empty-row">
+                      <td
+                        className="empty-cell"
+                        data-label="Estado"
+                        colSpan={detailsModalType === 'receivable' ? 6 : 5}
+                      >
+                        No hay movimientos en este grupo para este mes.
+                      </td>
                     </tr>
                   )}
 
                   {detailMovements.map((movement) => (
                     <tr key={movement.id}>
-                      <td>{movement.description}</td>
-                      <td>{movement.installment_label || 'Sin cuotas'}</td>
-                      {detailsModalType === 'receivable' && <td>{movement.person || '-'}</td>}
-                      <td>{currency.format(Number(movement.amount))}</td>
-                      <td>{movement.notes || '-'}</td>
-                      <td>
+                      <td data-label="Descripcion">{movement.description}</td>
+                      <td data-label="Cuota">{movement.installment_label || 'Sin cuotas'}</td>
+                      {detailsModalType === 'receivable' && <td data-label="Persona">{movement.person || '-'}</td>}
+                      <td data-label="Monto">{currency.format(Number(movement.amount))}</td>
+                      <td data-label="Notas">{movement.notes || '-'}</td>
+                      <td data-label="Acciones">
                         <div className="actions">
                           <button type="button" className="small" onClick={() => openEditModal(movement)}>
                             Editar

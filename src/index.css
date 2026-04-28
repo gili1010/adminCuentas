@@ -75,6 +75,7 @@ p {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .kpi-grid {
@@ -168,6 +169,12 @@ textarea {
   color: var(--ink);
 }
 
+input,
+select,
+button {
+  min-height: 42px;
+}
+
 textarea {
   resize: vertical;
 }
@@ -206,6 +213,7 @@ button:disabled {
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 14px;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -232,6 +240,11 @@ th {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.empty-cell {
+  text-align: center;
+  color: var(--ink-muted);
 }
 
 .status {
@@ -331,6 +344,7 @@ th {
 
   .topbar-actions {
     width: 100%;
+    align-items: stretch;
   }
 
   .topbar-actions > * {
@@ -343,6 +357,7 @@ th {
 
   .screen {
     padding: 14px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
   .panel-header {
@@ -352,5 +367,110 @@ th {
 
   .panel-header-actions {
     justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .modal-header,
+  .modal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .table-scroll {
+    border: none;
+    overflow: visible;
+    border-radius: 0;
+  }
+
+  table,
+  .modal-mini-table table {
+    min-width: 0;
+  }
+
+  table thead {
+    display: none;
+  }
+
+  table tbody,
+  table tr,
+  table td {
+    display: block;
+    width: 100%;
+  }
+
+  table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  table tr {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 10px 12px;
+  }
+
+  table td {
+    border-bottom: 1px dashed var(--line);
+    padding: 8px 0;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  table td::before {
+    content: attr(data-label);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    letter-spacing: 0.01em;
+    flex: 0 0 auto;
+  }
+
+  table td:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .empty-row {
+    box-shadow: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+
+  .empty-cell {
+    display: block;
+    text-align: left;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    background: #fff;
+  }
+
+  .empty-cell::before {
+    display: none;
+  }
+
+  td[data-label='Acciones'] {
+    align-items: stretch;
+  }
+
+  td[data-label='Acciones'] .actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  td[data-label='Acciones'] .actions button {
+    flex: 1 1 calc(50% - 4px);
   }
 }
