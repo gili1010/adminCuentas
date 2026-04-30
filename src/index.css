@@ -327,6 +327,22 @@ th {
   min-width: 640px;
 }
 
+.row-paid td {
+  background-color: #d1fae5;
+}
+
+.paid-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.paid-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #16a34a;
+}
+
 @media (max-width: 1040px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

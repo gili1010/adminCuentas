@@ -9,9 +9,13 @@ create table if not exists public.movements (
   card_name text,
   installment_label text,
   notes text,
+  paid boolean not null default false,
   status text not null default 'pending' check (status in ('pending', 'done')),
   created_at timestamptz not null default now()
 );
+
+alter table public.movements
+add column if not exists paid boolean not null default false;
 
 create index if not exists movements_user_due_idx on public.movements (user_id, due_date);
 create index if not exists movements_user_type_idx on public.movements (user_id, type);

@@ -75,6 +75,7 @@ function App() {
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false)
   const [detailsModalType, setDetailsModalType] = useState(null)
   const [editingMovementId, setEditingMovementId] = useState(null)
+  const [updatingPaidIds, setUpdatingPaidIds] = useState([])
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -220,7 +221,7 @@ function App() {
     } else {
       const { data, error: insertError } = await supabase
         .from('movements')
-        .insert(payload)
+        .insert({ ...payload, paid: false })
         .select('*')
         .single()
 
@@ -267,6 +268,27 @@ function App() {
     }
     setEditingMovementId(null)
     setIsMovementModalOpen(false)
+  }
+
+  async function togglePaid(movement) {
+    setError('')
+    setUpdatingPaidIds((prev) => [...prev, movement.id])
+
+    const nextPaidValue = !Boolean(movement.paid)
+    const { data, error: updateError } = await supabase
+      .from('movements')
+      .update({ paid: nextPaidValue })
+      .eq('id', movement.id)
+      .select('*')
+      .single()
+
+    if (updateError) {
+      setError(updateError.message)
+    } else {
+      setMovements((prev) => prev.map((item) => (item.id === movement.id ? data : item)))
+    }
+
+    setUpdatingPaidIds((prev) => prev.filter((id) => id !== movement.id))
   }
 
   function openDetailsModal(type) {
@@ -345,6 +367,7 @@ function App() {
   )
 
   const detailMovements = detailsModalType ? groupedMovementsByType[detailsModalType] ?? [] : []
+  const showPaidColumn = detailsModalType === 'expense' || detailsModalType === 'receivable'
 
   const movementRows = useMemo(() => {
     const rows = []
@@ -726,6 +749,7 @@ function App() {
                     <th>Monto</th>
                     <th>Notas</th>
                     <th>Acciones</th>
+                    {showPaidColumn && <th>Pagado</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -734,7 +758,7 @@ function App() {
                       <td
                         className="empty-cell"
                         data-label="Estado"
-                        colSpan={detailsModalType === 'receivable' ? 6 : 5}
+                        colSpan={detailsModalType === 'receivable' ? (showPaidColumn ? 7 : 6) : showPaidColumn ? 6 : 5}
                       >
                         No hay movimientos en este grupo para este mes.
                       </td>
@@ -742,7 +766,7 @@ function App() {
                   )}
 
                   {detailMovements.map((movement) => (
-                    <tr key={movement.id}>
+                    <tr key={movement.id} className={showPaidColumn && movement.paid ? 'row-paid' : ''}>
                       <td data-label="Descripcion">{movement.description}</td>
                       <td data-label="Cuota">{movement.installment_label || 'Sin cuotas'}</td>
                       {detailsModalType === 'receivable' && <td data-label="Persona">{movement.person || '-'}</td>}
@@ -762,6 +786,18 @@ function App() {
                           </button>
                         </div>
                       </td>
+                      {showPaidColumn && (
+                        <td data-label="Pagado" className="paid-cell">
+                          <input
+                            type="checkbox"
+                            className="paid-checkbox"
+                            checked={Boolean(movement.paid)}
+                            onChange={() => togglePaid(movement)}
+                            disabled={updatingPaidIds.includes(movement.id)}
+                            aria-label="Marcar como pagado"
+                          />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
