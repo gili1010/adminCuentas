@@ -444,6 +444,158 @@ tbody tr:hover td {
 .type-receivable { background: #dbeafe; color: #1e3a8a; }
 .type-card      { background: #f3e8ff; color: #581c87; }
 
+/* ── Skeleton loading ─────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton-row td {
+  padding: 12px 10px;
+}
+
+.skeleton-cell {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  width: 80px;
+  background: linear-gradient(90deg, #ece8e0 25%, #f5f2ec 50%, #ece8e0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.skeleton-cell.wide {
+  width: 160px;
+}
+
+/* ── Month badge ──────────────────────────────────────── */
+.month-picker-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.month-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #fdeecf;
+  color: #7a4d0f;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* ── Detail modal: filter + footer ───────────────────── */
+.detail-filter {
+  margin-bottom: 12px;
+}
+
+.detail-filter input {
+  max-width: 280px;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.detail-total {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+}
+
+.detail-total strong {
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* ── Sortable column headers ──────────────────────────── */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  background: #ecdfc9;
+}
+
+.sort-icon {
+  opacity: 0.45;
+  font-size: 0.8em;
+}
+
+.sort-active .sort-icon {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* ── Delete confirmation modal ────────────────────────── */
+.confirm-card {
+  max-width: 420px;
+  display: grid;
+  gap: 14px;
+}
+
+.confirm-card h2 {
+  font-size: 1.1rem;
+}
+
+.confirm-actions {
+  justify-content: flex-end;
+}
+
+/* ── Toast notifications ──────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast {
+  background: #1e1b17;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 11px 16px;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  animation: slideUp 0.2s ease;
+  max-width: 280px;
+}
+
+.toast-success { border-left: 3px solid #16a34a; }
+.toast-info    { border-left: 3px solid #2563eb; }
+.toast-error   { border-left: 3px solid var(--danger); }
+
+@media (max-width: 640px) {
+  .toast-container {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+  }
+  .toast {
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 1040px) {
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

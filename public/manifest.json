@@ -1,0 +1,18 @@
+{
+  "name": "Administrador de Cuentas",
+  "short_name": "Cuentas",
+  "description": "Controla pagos, cobros y tarjeta en un solo lugar.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f3efe5",
+  "theme_color": "#1f6f5a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

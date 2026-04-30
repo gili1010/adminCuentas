@@ -2,6 +2,23 @@ import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 
+let _toastId = 0
+
+function SortTh({ col, label, detailSort, onSort }) {
+  const active = detailSort.col === col
+  return (
+    <th
+      className={`sortable-th${active ? ' sort-active' : ''}`}
+      onClick={() => onSort(col)}
+    >
+      {label}
+      <span className="sort-icon">
+        {active ? (detailSort.dir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+      </span>
+    </th>
+  )
+}
+
 const movementTypes = [
   { value: 'expense', label: 'Cuenta a pagar' },
   { value: 'income', label: 'Ingreso propio' },
@@ -76,6 +93,16 @@ function App() {
   const [detailsModalType, setDetailsModalType] = useState(null)
   const [editingMovementId, setEditingMovementId] = useState(null)
   const [updatingPaidIds, setUpdatingPaidIds] = useState([])
+  const [toasts, setToasts] = useState([])
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [detailSort, setDetailSort] = useState({ col: null, dir: 'asc' })
+  const [personFilter, setPersonFilter] = useState('')
+
+  function showToast(message, type = 'success') {
+    const id = ++_toastId
+    setToasts((prev) => [...prev, { id, message, type }])
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000)
+  }
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -217,6 +244,7 @@ function App() {
         setMovementForm({ ...emptyMovement, due_date: `${selectedMonth}-01` })
         setEditingMovementId(null)
         setIsMovementModalOpen(false)
+        showToast('Movimiento actualizado')
       }
     } else {
       const { data, error: insertError } = await supabase
@@ -231,6 +259,7 @@ function App() {
         setMovements((prev) => [data, ...prev])
         setMovementForm({ ...emptyMovement, due_date: `${selectedMonth}-01` })
         setIsMovementModalOpen(false)
+        showToast('Movimiento guardado')
       }
     }
 
@@ -286,6 +315,7 @@ function App() {
       setError(updateError.message)
     } else {
       setMovements((prev) => prev.map((item) => (item.id === movement.id ? data : item)))
+      showToast(nextPaidValue ? 'Marcado como pagado ✓' : 'Marcado como pendiente')
     }
 
     setUpdatingPaidIds((prev) => prev.filter((id) => id !== movement.id))
@@ -293,6 +323,8 @@ function App() {
 
   function openDetailsModal(type) {
     setDetailsModalType(type)
+    setPersonFilter('')
+    setDetailSort({ col: null, dir: 'asc' })
   }
 
   function closeDetailsModal() {
@@ -302,13 +334,26 @@ function App() {
     setDetailsModalType(null)
   }
 
-  async function deleteMovement(id) {
+  function requestDeleteMovement(id) {
+    setDeleteConfirmId(id)
+  }
+
+  async function executeDelete() {
+    const id = deleteConfirmId
+    setDeleteConfirmId(null)
     const { error: deleteError } = await supabase.from('movements').delete().eq('id', id)
     if (deleteError) {
       setError(deleteError.message)
       return
     }
     setMovements((prev) => prev.filter((item) => item.id !== id))
+    showToast('Movimiento eliminado', 'info')
+  }
+
+  function toggleDetailSort(col) {
+    setDetailSort((prev) =>
+      prev.col === col ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' },
+    )
   }
 
   const monthlyMovements = useMemo(() => {
@@ -366,8 +411,28 @@ function App() {
     [monthlyMovements],
   )
 
-  const detailMovements = detailsModalType ? groupedMovementsByType[detailsModalType] ?? [] : []
+  const rawDetailMovements = detailsModalType ? groupedMovementsByType[detailsModalType] ?? [] : []
   const showPaidColumn = detailsModalType === 'expense' || detailsModalType === 'receivable'
+
+  const detailMovements = useMemo(() => {
+    let result = rawDetailMovements
+    if (detailsModalType === 'receivable' && personFilter.trim()) {
+      const q = personFilter.trim().toLowerCase()
+      result = result.filter((m) => (m.person ?? '').toLowerCase().includes(q))
+    }
+    if (detailSort.col) {
+      result = [...result].sort((a, b) => {
+        const va = detailSort.col === 'amount' ? Number(a.amount) : String(a[detailSort.col] ?? '').toLowerCase()
+        const vb = detailSort.col === 'amount' ? Number(b.amount) : String(b[detailSort.col] ?? '').toLowerCase()
+        if (va < vb) return detailSort.dir === 'asc' ? -1 : 1
+        if (va > vb) return detailSort.dir === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+    return result
+  }, [rawDetailMovements, detailsModalType, personFilter, detailSort])
+
+  const detailTotal = rawDetailMovements.reduce((acc, m) => acc + Number(m.amount), 0)
 
   const movementRows = useMemo(() => {
     const rows = []
@@ -417,6 +482,12 @@ function App() {
   }, [monthlyMovements])
 
   const showInstallmentInput = movementForm.installment_mode === 'with'
+  const isCurrentMonth = selectedMonth === dayjs().format('YYYY-MM')
+
+  const receivablePersons = useMemo(() => {
+    if (detailsModalType !== 'receivable') return []
+    return [...new Set(rawDetailMovements.map((m) => m.person).filter(Boolean))].sort()
+  }, [rawDetailMovements, detailsModalType])
 
   if (!isSupabaseConfigured) {
     return (
@@ -486,11 +557,14 @@ function App() {
           <p>Controla pagos, cobros y tarjeta en un solo lugar.</p>
         </div>
         <div className="topbar-actions">
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(event) => setSelectedMonth(event.target.value)}
-          />
+          <div className="month-picker-wrap">
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(event) => setSelectedMonth(event.target.value)}
+            />
+            {!isCurrentMonth && <span className="month-badge">Mes anterior</span>}
+          </div>
           <button type="button" className="ghost" onClick={signOut}>
             Cerrar sesion
           </button>
@@ -521,7 +595,6 @@ function App() {
           <div className="panel-header">
             <h2>Movimientos del mes</h2>
             <div className="panel-header-actions">
-              {loading && <span>Cargando...</span>}
               <button type="button" onClick={openMovementModal}>
                 Agregar movimiento
               </button>
@@ -540,7 +613,16 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {movementRows.length === 0 && (
+                {loading && [1, 2, 3, 4].map((n) => (
+                  <tr key={`sk-${n}`} className="skeleton-row">
+                    <td><span className="skeleton-cell" /></td>
+                    <td><span className="skeleton-cell wide" /></td>
+                    <td><span className="skeleton-cell" /></td>
+                    <td><span className="skeleton-cell" /></td>
+                    <td><span className="skeleton-cell" /></td>
+                  </tr>
+                ))}
+                {!loading && movementRows.length === 0 && (
                   <tr className="empty-row">
                     <td className="empty-cell" data-label="Estado" colSpan="5">
                       No hay movimientos para este mes.
@@ -548,7 +630,7 @@ function App() {
                   </tr>
                 )}
 
-                {movementRows.map((movement) => (
+                {!loading && movementRows.map((movement) => (
                   <tr key={movement.id} className={movement.isGroupedSummary ? 'summary-row' : ''}>
                     <td data-label="Tipo">
                       {movement.isGroupedSummary ? (
@@ -584,7 +666,7 @@ function App() {
                             <button
                               type="button"
                               className="small danger"
-                              onClick={() => deleteMovement(movement.id)}
+                              onClick={() => requestDeleteMovement(movement.id)}
                             >
                               Eliminar
                             </button>
@@ -747,14 +829,25 @@ function App() {
               </button>
             </div>
 
+            {detailsModalType === 'receivable' && receivablePersons.length > 1 && (
+              <div className="detail-filter">
+                <input
+                  type="search"
+                  placeholder="Filtrar por persona..."
+                  value={personFilter}
+                  onChange={(e) => setPersonFilter(e.target.value)}
+                />
+              </div>
+            )}
+
             <div className="table-scroll modal-mini-table">
               <table>
                 <thead>
                   <tr>
-                    <th>Descripcion</th>
+                    <SortTh col="description" label="Descripcion" detailSort={detailSort} onSort={toggleDetailSort} />
                     <th>Cuota</th>
-                    {detailsModalType === 'receivable' && <th>Persona</th>}
-                    <th>Monto</th>
+                    {detailsModalType === 'receivable' && <SortTh col="person" label="Persona" detailSort={detailSort} onSort={toggleDetailSort} />}
+                    <SortTh col="amount" label="Monto" detailSort={detailSort} onSort={toggleDetailSort} />
                     <th>Notas</th>
                     <th>Acciones</th>
                     {showPaidColumn && <th>Pagado</th>}
@@ -768,7 +861,7 @@ function App() {
                         data-label="Estado"
                         colSpan={detailsModalType === 'receivable' ? (showPaidColumn ? 7 : 6) : showPaidColumn ? 6 : 5}
                       >
-                        No hay movimientos en este grupo para este mes.
+                        {personFilter ? 'Sin resultados para ese filtro.' : 'No hay movimientos en este grupo para este mes.'}
                       </td>
                     </tr>
                   )}
@@ -788,7 +881,7 @@ function App() {
                           <button
                             type="button"
                             className="small danger"
-                            onClick={() => deleteMovement(movement.id)}
+                            onClick={() => requestDeleteMovement(movement.id)}
                           >
                             Eliminar
                           </button>
@@ -812,16 +905,44 @@ function App() {
               </table>
             </div>
 
-            <div className="modal-actions">
-              <button type="button" className="ghost" onClick={closeDetailsModal}>
-                Cerrar
-              </button>
+            <div className="modal-footer">
+              <span className="detail-total">Total: <strong>{currency.format(detailTotal)}</strong></span>
+              <div className="modal-actions">
+                <button type="button" className="ghost" onClick={closeDetailsModal}>
+                  Cerrar
+                </button>
+              </div>
             </div>
           </article>
         </div>
       )}
 
       {error && <p className="error-message">{error}</p>}
+
+      {deleteConfirmId !== null && (
+        <div className="modal-backdrop" onClick={() => setDeleteConfirmId(null)}>
+          <article className="modal-card confirm-card" onClick={(e) => e.stopPropagation()}>
+            <h2>Eliminar movimiento</h2>
+            <p>¿Confirmas que queres eliminar este movimiento? Esta accion no se puede deshacer.</p>
+            <div className="modal-actions confirm-actions">
+              <button type="button" className="ghost" onClick={() => setDeleteConfirmId(null)}>
+                Cancelar
+              </button>
+              <button type="button" className="danger" onClick={executeDelete}>
+                Si, eliminar
+              </button>
+            </div>
+          </article>
+        </div>
+      )}
+
+      <div className="toast-container" aria-live="polite">
+        {toasts.map((toast) => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            {toast.message}
+          </div>
+        ))}
+      </div>
     </main>
   )
 }
