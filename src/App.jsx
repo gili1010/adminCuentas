@@ -498,19 +498,19 @@ function App() {
       </header>
 
       <section className="kpi-grid">
-        <article>
+        <article className="kpi-income">
           <h2>Ingreso del mes</h2>
           <strong>{currency.format(summary.plannedIncome)}</strong>
         </article>
-        <article>
+        <article className="kpi-receivable">
           <h2>Te tienen que dar</h2>
           <strong>{currency.format(summary.toReceive)}</strong>
         </article>
-        <article>
+        <article className="kpi-expense">
           <h2>Gastos del mes</h2>
           <strong>{currency.format(summary.toPay)}</strong>
         </article>
-        <article>
+        <article className={`kpi-balance${summary.projectedBalance < 0 ? ' negative' : ''}`}>
           <h2>Saldo proyectado</h2>
           <strong>{currency.format(summary.projectedBalance)}</strong>
         </article>
@@ -549,8 +549,16 @@ function App() {
                 )}
 
                 {movementRows.map((movement) => (
-                  <tr key={movement.id}>
-                    <td data-label="Tipo">{movementTypes.find((item) => item.value === movement.type)?.label}</td>
+                  <tr key={movement.id} className={movement.isGroupedSummary ? 'summary-row' : ''}>
+                    <td data-label="Tipo">
+                      {movement.isGroupedSummary ? (
+                        movementTypes.find((item) => item.value === movement.type)?.label
+                      ) : (
+                        <span className={`type-badge type-${movement.type}`}>
+                          {movementTypes.find((item) => item.value === movement.type)?.label}
+                        </span>
+                      )}
+                    </td>
                     <td data-label="Descripcion">{movement.description}</td>
                     <td data-label="Monto">{currency.format(Number(movement.amount))}</td>
                     <td data-label="Notas">{movement.notes || '-'}</td>
